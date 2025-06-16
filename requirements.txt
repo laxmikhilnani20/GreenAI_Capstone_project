@@ -3,7 +3,9 @@ pandas==2.1.0
 numpy==1.26.0
 matplotlib==3.8.0
 seaborn==0.13.0
-scikit-learn==1.3.0
+scikit-learn==1.2.2  # Using a specific version for better compatibility
 joblib==1.3.2
 plotly==5.18.0
 statsmodels==0.14.0
+sklearn-pandas==2.2.0
+protobuf==4.25.0  # Added for model compatibility

@@ -57,11 +57,27 @@ This dashboard provides insights and forecasts for sustainable fishing practices
 @st.cache_resource
 def load_model():
     try:
+        # First attempt to load the model directly
         model = joblib.load('sustainability_forecasting_model.joblib')
         return model
     except Exception as e:
-        st.error(f"Error loading model: {e}")
-        return None
+        st.warning(f"Normal loading failed: {e}")
+        try:
+            # Alternative loading method for handling scikit-learn version incompatibilities
+            import pickle
+            with open('sustainability_forecasting_model.joblib', 'rb') as f:
+                # Use compatibility mode to load the model
+                model = pickle.load(f, encoding='latin1')
+            st.success("Model loaded using compatibility mode")
+            return model
+        except Exception as e2:
+            # If both methods fail, create a simple fallback model for demonstration
+            st.error(f"Error loading model with fallback method: {e2}")
+            st.info("Using a demo model for visualization purposes")
+            from sklearn.ensemble import RandomForestRegressor
+            # Create a simple placeholder model
+            fallback_model = RandomForestRegressor(n_estimators=10, random_state=42)
+            return fallback_model
 
 model = load_model()
 
@@ -247,8 +263,16 @@ elif page == "Predictions":
     # Prepare data for visualization
     if model:
         try:
-            # For demonstration, create simple forecasts
-            # In a real app, this would use the actual model prediction
+            # Check if it's our fallback model or a real trained model
+            is_fallback = False
+            try:
+                # This will fail for the fallback model that hasn't been fit with real data
+                model.predict(X[-5:, :])
+            except Exception:
+                is_fallback = True
+                st.warning("Using simulated forecasts as the original model couldn't be loaded properly.")
+            
+            # For demonstration or if using fallback, create simple forecasts
             last_values = X[-1]
             
             # Simple trend continuation with some random variations
@@ -347,10 +371,52 @@ elif page == "Predictions":
             for rec in recommendations:
                 st.markdown(f"- {rec}")
             
+            # Add troubleshooting info if using fallback model
+            if is_fallback:
+                st.markdown("---")
+                with st.expander("Troubleshooting Model Issues"):
+                    st.markdown("""
+                    The original model could not be loaded due to compatibility issues. To fix this:
+                    
+                    1. Run the included fix_model.py script:
+                       ```
+                       python fix_model.py
+                       ```
+                       
+                    2. This will create a new compatible model file and back up the original.
+                    
+                    3. Restart the Streamlit app:
+                       ```
+                       streamlit run app.py
+                       ```
+                    
+                    Alternatively, you can retrain your original model using the current version of scikit-learn.
+                    """)
+            
         except Exception as e:
             st.error(f"Error generating predictions: {e}")
+            st.markdown("Try running the fix_model.py script to resolve compatibility issues with the model file.")
     else:
         st.warning("Model not loaded. Please ensure the model file is available.")
+        
+        with st.expander("Troubleshooting Model Issues"):
+            st.markdown("""
+            If you're seeing this message, the model couldn't be loaded. Here are some steps to fix it:
+            
+            1. Run the included fix_model.py script:
+               ```
+               python fix_model.py
+               ```
+               
+            2. This will create a new compatible model file and back up the original.
+            
+            3. Restart the Streamlit app:
+               ```
+               streamlit run app.py
+               ```
+            
+            Alternatively, you can retrain your original model using the current version of scikit-learn.
+            """)
 
 # About page
 elif page == "About":
